@@ -63,8 +63,43 @@ function drawScore() {
 }
 
 function fireConfetti(winner) {
+  const audio = new Audio('https://www.soundjay.com/human/sounds/applause-01.mp3');
+  audio.play();
+  const count = 150;
+  const defaults = {
+    origin: { y: 0.7 }
+  };
+
+  function fire(particleRatio, opts) {
+    confetti(Object.assign({}, defaults, opts, {
+      particleCount: Math.floor(count * particleRatio)
+    }));
+  }
+
+  fire(0.25, {
+    spread: 26,
+    startVelocity: 55,
+  });
+  fire(0.2, {
+    spread: 60,
+  });
+  fire(0.35, {
+    spread: 100,
+    decay: 0.91,
+    scalar: 0.8
+  });
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 25,
+    decay: 0.92,
+    scalar: 1.2
+  });
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 45,
+  });
+
   alert(`${winner} wins the game! 🎉`);
-  // TODO: optional canvas confetti effect
 }
 
 function startGameMode(mode) {
@@ -74,17 +109,18 @@ function startGameMode(mode) {
     gameId = new URLSearchParams(window.location.search).get('game') || Math.random().toString(36).substr(2, 6);
     window.history.replaceState({}, '', `?game=${gameId}`);
     socket.emit('joinGame', gameId);
-    document.getElementById('status').innerText = 'Waiting for another player to join...';
-    document.getElementById('status').style.display = 'block';
+    const status = document.getElementById('status');
+    status.innerText = 'Waiting for another player to join...';
+    status.style.display = 'block';
 
     let timeLeft = 300; // 5 minutes
-    const status = document.getElementById('status');
     joinTimeout = setInterval(() => {
       timeLeft--;
       status.innerText = `Waiting for another player to join... (${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')})`;
       if (timeLeft <= 0) {
         clearInterval(joinTimeout);
         status.innerText = 'Time out! No player joined. Game over.';
+        setTimeout(() => location.reload(), 3000);
       }
     }, 1000);
   } else {
@@ -183,6 +219,9 @@ socket.on('startOnlineGame', (side) => {
   if (joinTimeout) clearInterval(joinTimeout);
   document.getElementById('status').style.display = 'none';
   playerSide = side;
+  const entranceAudio = new Audio('https://www.soundjay.com/human/sounds/cheering-01.mp3');
+  entranceAudio.play();
+  confetti();
   loop();
 });
 
@@ -232,3 +271,8 @@ menuDiv.innerHTML = `
   <button onclick="startGameMode('online')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play with a Friend Online</button>
 `;
 document.body.appendChild(menuDiv);
+
+// Load confetti library
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+document.head.appendChild(script);
