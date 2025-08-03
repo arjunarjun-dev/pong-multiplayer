@@ -37,7 +37,12 @@ let leftScore = 0;
 let rightScore = 0;
 
 function createBall() {
-  const angle = Math.random() * Math.PI * 2;
+  // Pick angle between 30°-150° or 210°-330°
+  const angles = [
+    Math.random() * (150 - 30) + 30,
+    Math.random() * (330 - 210) + 210
+  ];
+  const angle = (Math.random() < 0.5 ? angles[0] : angles[1]) * (Math.PI / 180);
   return {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -47,6 +52,7 @@ function createBall() {
     dy: Math.sin(angle) * ballSpeed
   };
 }
+
 
 function collides(obj1, obj2) {
   return obj1.x < obj2.x + obj2.width &&
