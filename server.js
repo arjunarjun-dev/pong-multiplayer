@@ -1,40 +1,89 @@
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server);
 
-let players = {};
+const rooms = {}; // gameId => [socketId1, socketId2]
 
-io.on('connection', socket => {
+io.on('connection', (socket) => {
   console.log('New player connected:', socket.id);
 
-  if (Object.keys(players).length < 2) {
-    players[socket.id] = { y: 0 };
-  }
+  socket.on('joinGame', (gameId) => {
+    console.log(`${socket.id} wants to join game ${gameId}`);
 
-  socket.emit('playerNumber', Object.keys(players).indexOf(socket.id));
+    if (!rooms[gameId]) {
+      rooms[gameId] = [];
+    }
 
-  socket.on('restartGame', () => {
-  // Broadcast restart to all connected clients
-  io.emit('gameRestart');
-});
+    const playersInRoom = rooms[gameId];
 
-  socket.on('paddleMove', y => {
-    if (players[socket.id]) {
-      players[socket.id].y = y;
-      socket.broadcast.emit('updateOpponent', y);
+    if (playersInRoom.length >= 2) {
+      // Room full
+      socket.emit('roomFull');
+      console.log(`Room ${gameId} is full`);
+      return;
+    }
+
+    // Add player to room
+    playersInRoom.push(socket.id);
+    socket.join(gameId);
+    console.log(`Player ${socket.id} joined room ${gameId}`);
+
+    if (playersInRoom.length === 1) {
+      // First player joined - tell them to wait
+      socket.emit('waitingForPlayer');
+    }
+
+    if (playersInRoom.length === 2) {
+      // Room full - start the game for both players
+      const [player1, player2] = playersInRoom;
+
+      io.to(player1).emit('startOnlineGame', 'left');
+      io.to(player2).emit('startOnlineGame', 'right');
+
+      console.log(`Game ${gameId} started with players ${player1} (left) and ${player2} (right)`);
     }
   });
 
   socket.on('disconnect', () => {
-    delete players[socket.id];
-    console.log('Player disconnected:', socket.id);
+    console.log(`Player disconnected: ${socket.id}`);
+
+    // Remove player from any room
+    for (const gameId in rooms) {
+      const playersInRoom = rooms[gameId];
+      const index = playersInRoom.indexOf(socket.id);
+      if (index !== -1) {
+        playersInRoom.splice(index, 1);
+        // If room empty, delete it
+        if (playersInRoom.length === 0) {
+          delete rooms[gameId];
+        }
+        break;
+      }
+    }
+  });
+
+  // You can keep your other event handlers here (e.g. paddleMove, restartGame)...
+
+  socket.on('paddleMove', (data) => {
+    // broadcast the paddle movement to the opponent
+    // 'data' should include gameId and y position for example
+    if (data.gameId && data.y !== undefined) {
+      socket.to(data.gameId).emit('updateOpponent', data.y);
+    }
+  });
+
+  socket.on('restartGame', (gameId) => {
+    if (gameId) {
+      io.to(gameId).emit('gameRestart');
+    }
   });
 });
 
 app.use(express.static(__dirname));
-server.listen(3000, () => console.log('Server listening on port 3000'));
 
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
