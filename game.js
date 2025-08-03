@@ -23,3 +23,25 @@ restartBtn.addEventListener('click', () => {
   socket.emit('restartGame');  // Notify server to restart
 });
 
+socket.on('gameRestart', () => {
+  // Reset game state on client: reset ball(s), scores, paddle positions etc.
+
+  // Example reset code:
+  balls = [{
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    width: grid,
+    height: grid,
+    dx: ballSpeed,
+    dy: -ballSpeed,
+    lastCloneTime: 0
+  }];
+
+  score1 = 0;
+  score2 = 0;
+  updateScore();
+
+  leftPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
+});
+
