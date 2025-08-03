@@ -129,8 +129,9 @@ function startGameMode(mode) {
 }
 
 function loop() {
-  if (gameOver) return;
 
+  console.log('Game loop running');
+  if (gameOver) return;
   requestAnimationFrame(loop);
   context.clearRect(0, 0, canvas.width, canvas.height);
 
