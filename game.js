@@ -63,6 +63,12 @@ function fireConfetti(winner) {
   // TODO: optional canvas confetti effect
 }
 
+function startGameMode(mode) {
+  document.getElementById('menu').style.display = 'none';
+  loop();
+  // TODO: handle online mode setup if needed
+}
+
 function loop() {
   if (gameOver) return;
 
@@ -162,4 +168,22 @@ document.addEventListener('keyup', (e) => {
   if (e.key === 'w' || e.key === 's') leftPaddle.dy = 0;
 });
 
-loop();
+// Add menu buttons
+const menuDiv = document.createElement('div');
+menuDiv.id = 'menu';
+menuDiv.style.position = 'absolute';
+menuDiv.style.top = '0';
+menuDiv.style.left = '0';
+menuDiv.style.width = '100%';
+menuDiv.style.height = '100%';
+menuDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+menuDiv.style.display = 'flex';
+menuDiv.style.flexDirection = 'column';
+menuDiv.style.justifyContent = 'center';
+menuDiv.style.alignItems = 'center';
+menuDiv.innerHTML = `
+  <h1 style="color:white">Pong Multiplayer</h1>
+  <button onclick="startGameMode('local')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play on Same Machine</button>
+  <button onclick="startGameMode('online')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play with a Friend Online</button>
+`;
+document.body.appendChild(menuDiv);
