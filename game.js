@@ -17,3 +17,9 @@ socket.on('updateOpponent', (opponentY) => {
   // update opponent paddle position on screen
 });
 
+const restartBtn = document.getElementById('restartBtn');
+
+restartBtn.addEventListener('click', () => {
+  socket.emit('restartGame');  // Notify server to restart
+});
+
