@@ -17,6 +17,11 @@ io.on('connection', socket => {
 
   socket.emit('playerNumber', Object.keys(players).indexOf(socket.id));
 
+  socket.on('restartGame', () => {
+  // Broadcast restart to all connected clients
+  io.emit('gameRestart');
+});
+
   socket.on('paddleMove', y => {
     if (players[socket.id]) {
       players[socket.id].y = y;
@@ -28,11 +33,6 @@ io.on('connection', socket => {
     delete players[socket.id];
     console.log('Player disconnected:', socket.id);
   });
-});
-
-socket.on('restartGame', () => {
-  // Broadcast restart to all connected clients
-  io.emit('gameRestart');
 });
 
 app.use(express.static(__dirname));
