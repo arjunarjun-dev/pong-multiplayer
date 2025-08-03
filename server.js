@@ -30,6 +30,11 @@ io.on('connection', socket => {
   });
 });
 
+socket.on('restartGame', () => {
+  // Broadcast restart to all connected clients
+  io.emit('gameRestart');
+});
+
 app.use(express.static(__dirname));
 server.listen(3000, () => console.log('Server listening on port 3000'));
 
