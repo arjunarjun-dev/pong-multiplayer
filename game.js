@@ -11,6 +11,9 @@ const maxPaddleY = canvas.height - grid - paddleHeight;
 let paddleSpeed = 12;
 let ballSpeed = 10;
 let gameOver = false;
+let isOnline = false;
+let playerSide = null; // 'left' or 'right'
+let gameId = null;
 
 const leftPaddle = {
   x: grid * 2,
@@ -65,8 +68,15 @@ function fireConfetti(winner) {
 
 function startGameMode(mode) {
   document.getElementById('menu').style.display = 'none';
-  loop();
-  // TODO: handle online mode setup if needed
+  if (mode === 'online') {
+    isOnline = true;
+    gameId = new URLSearchParams(window.location.search).get('game') || Math.random().toString(36).substr(2, 6);
+    window.history.replaceState({}, '', `?game=${gameId}`);
+    socket.emit('joinGame', gameId);
+    document.getElementById('status').innerText = 'Waiting for another player to join...';
+  } else {
+    loop();
+  }
 }
 
 function loop() {
@@ -156,16 +166,36 @@ function loop() {
   drawScore();
 }
 
+socket.on('startOnlineGame', (side) => {
+  document.getElementById('status').style.display = 'none';
+  playerSide = side;
+  loop();
+});
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowUp') rightPaddle.dy = -paddleSpeed;
-  if (e.key === 'ArrowDown') rightPaddle.dy = paddleSpeed;
-  if (e.key === 'w') leftPaddle.dy = -paddleSpeed;
-  if (e.key === 's') leftPaddle.dy = paddleSpeed;
+  if (isOnline) {
+    if ((playerSide === 'right' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) ||
+        (playerSide === 'left' && (e.key === 'w' || e.key === 's'))){
+      socket.emit('keydown', e.key);
+    }
+  } else {
+    if (e.key === 'ArrowUp') rightPaddle.dy = -paddleSpeed;
+    if (e.key === 'ArrowDown') rightPaddle.dy = paddleSpeed;
+    if (e.key === 'w') leftPaddle.dy = -paddleSpeed;
+    if (e.key === 's') leftPaddle.dy = paddleSpeed;
+  }
 });
 
 document.addEventListener('keyup', (e) => {
-  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') rightPaddle.dy = 0;
-  if (e.key === 'w' || e.key === 's') leftPaddle.dy = 0;
+  if (isOnline) {
+    if ((playerSide === 'right' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) ||
+        (playerSide === 'left' && (e.key === 'w' || e.key === 's'))){
+      socket.emit('keyup', e.key);
+    }
+  } else {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') rightPaddle.dy = 0;
+    if (e.key === 'w' || e.key === 's') leftPaddle.dy = 0;
+  }
 });
 
 // Add menu buttons
@@ -183,6 +213,7 @@ menuDiv.style.justifyContent = 'center';
 menuDiv.style.alignItems = 'center';
 menuDiv.innerHTML = `
   <h1 style="color:white">Pong Multiplayer</h1>
+  <div id="status" style="color:yellow; margin-bottom: 10px;"></div>
   <button onclick="startGameMode('local')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play on Same Machine</button>
   <button onclick="startGameMode('online')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play with a Friend Online</button>
 `;
