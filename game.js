@@ -14,6 +14,7 @@ let gameOver = false;
 let isOnline = false;
 let playerSide = null; // 'left' or 'right'
 let gameId = null;
+let joinTimeout = null;
 
 const leftPaddle = {
   x: grid * 2,
@@ -74,6 +75,18 @@ function startGameMode(mode) {
     window.history.replaceState({}, '', `?game=${gameId}`);
     socket.emit('joinGame', gameId);
     document.getElementById('status').innerText = 'Waiting for another player to join...';
+    document.getElementById('status').style.display = 'block';
+
+    let timeLeft = 300; // 5 minutes
+    const status = document.getElementById('status');
+    joinTimeout = setInterval(() => {
+      timeLeft--;
+      status.innerText = `Waiting for another player to join... (${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')})`;
+      if (timeLeft <= 0) {
+        clearInterval(joinTimeout);
+        status.innerText = 'Time out! No player joined. Game over.';
+      }
+    }, 1000);
   } else {
     loop();
   }
@@ -167,6 +180,7 @@ function loop() {
 }
 
 socket.on('startOnlineGame', (side) => {
+  if (joinTimeout) clearInterval(joinTimeout);
   document.getElementById('status').style.display = 'none';
   playerSide = side;
   loop();
