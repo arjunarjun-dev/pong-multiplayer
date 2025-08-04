@@ -170,8 +170,9 @@ function loop() {
       ballHandled = true;
       ball.dx *= -1;
       ball.x = leftPaddle.x + leftPaddle.width;
-      balls[i] = null;
+      // Keep current ball and add a new one at collision point
       balls.push(createBall(ball.x, ball.y));
+      // do NOT remove current ball
     }
 
     if (collides(ball, rightPaddle)) {
@@ -184,8 +185,9 @@ function loop() {
       ballHandled = true;
       ball.dx *= -1;
       ball.x = rightPaddle.x - ball.width;
-      balls[i] = null;
+      // Keep current ball and add a new one at collision point
       balls.push(createBall(ball.x, ball.y));
+      // do NOT remove current ball
     }
 
     if (!ballHandled) {
@@ -211,6 +213,7 @@ function loop() {
 
   drawScore();
 }
+
 
 socket.on('startOnlineGame', (side) => {
   if (joinTimeout) clearInterval(joinTimeout);
