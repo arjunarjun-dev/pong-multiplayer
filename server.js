@@ -1,13 +1,21 @@
-// server.js
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// ✅ Serve all files in the current folder (like index.html, game.js, etc.)
+app.use(express.static(__dirname));
+
+// Optional fallback if no other route matches
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// --- Multiplayer game logic ---
 const games = {};
 
 io.on('connection', (socket) => {
@@ -15,10 +23,8 @@ io.on('connection', (socket) => {
 
   socket.on('joinGame', (gameId) => {
     console.log(`Player ${socket.id} joined game ${gameId}`);
-    
-    if (!games[gameId]) {
-      games[gameId] = [];
-    }
+
+    if (!games[gameId]) games[gameId] = [];
 
     const players = games[gameId];
 
@@ -30,12 +36,10 @@ io.on('connection', (socket) => {
     players.push(socket);
 
     if (players.length === 2) {
-      console.log(`Starting game ${gameId}`);
       players[0].emit('startOnlineGame', 'left');
       players[1].emit('startOnlineGame', 'right');
     }
 
-    // Relay paddle movement events
     socket.on('keydown', (key) => {
       players.forEach(p => {
         if (p !== socket) p.emit('keydown', key);
@@ -52,14 +56,13 @@ io.on('connection', (socket) => {
       console.log(`Player ${socket.id} disconnected`);
       if (games[gameId]) {
         games[gameId] = games[gameId].filter(s => s !== socket);
-        if (games[gameId].length === 0) {
-          delete games[gameId];
-        }
+        if (games[gameId].length === 0) delete games[gameId];
       }
     });
   });
 });
 
-server.listen(3000, () => {
-  console.log('Server listening on http://localhost:3000');
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
