@@ -7,15 +7,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ✅ Serve all files in the current directory (like index.html, game.js, etc.)
 app.use(express.static(__dirname));
 
-// Optional fallback for browser refresh
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- Multiplayer game logic ---
 const games = {};
 
 io.on('connection', (socket) => {
@@ -24,7 +21,7 @@ io.on('connection', (socket) => {
   socket.on('joinGame', (gameId) => {
     console.log(`Player ${socket.id} joined game ${gameId}`);
 
-    socket.join(gameId); // Join room with name gameId
+    socket.join(gameId);
 
     if (!games[gameId]) {
       games[gameId] = [];
@@ -32,21 +29,28 @@ io.on('connection', (socket) => {
 
     const players = games[gameId];
 
-    // Avoid overfilling the game
+    // Prevent duplicate sockets in the array
+    if (players.find(p => p.id === socket.id)) {
+      // Already joined this game
+      return;
+    }
+
     if (players.length >= 2) {
       socket.emit('error', 'Game full');
       return;
     }
 
-    players.push(socket);
+    players.push({ id: socket.id, socket: socket });
 
-    // If both players joined, start the game
+    // Notify all players in this game room how many players are connected
+    io.to(gameId).emit('playerCount', players.length);
+
     if (players.length === 2) {
-      players[0].emit('startOnlineGame', 'left');
-      players[1].emit('startOnlineGame', 'right');
+      console.log(`Starting game for room ${gameId}`);
+      players[0].socket.emit('startOnlineGame', 'left');
+      players[1].socket.emit('startOnlineGame', 'right');
     }
 
-    // Relay movement events
     socket.on('keydown', (key) => {
       socket.to(gameId).emit('keydown', key);
     });
@@ -60,11 +64,13 @@ io.on('connection', (socket) => {
       socket.leave(gameId);
 
       if (games[gameId]) {
-        games[gameId] = games[gameId].filter(s => s !== socket);
+        games[gameId] = games[gameId].filter(p => p.id !== socket.id);
 
-        // If no players left, delete the game room
+        io.to(gameId).emit('playerCount', games[gameId].length);
+
         if (games[gameId].length === 0) {
           delete games[gameId];
+          console.log(`Game ${gameId} deleted`);
         }
       }
     });
