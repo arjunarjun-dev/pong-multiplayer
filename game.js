@@ -136,7 +136,11 @@ function startGameMode(mode) {
 
 function loop() {
 
-  console.log('Game loop running');
+  console.log('Game loop running, balls:', balls.length);
+  balls.forEach((ball, i) => {
+    console.log(`Ball ${i}: x=${ball.x.toFixed(2)}, y=${ball.y.toFixed(2)}, dx=${ball.dx.toFixed(2)}, dy=${ball.dy.toFixed(2)}`);
+  });
+  
   if (gameOver) return;
   requestAnimationFrame(loop);
   context.clearRect(0, 0, canvas.width, canvas.height);
