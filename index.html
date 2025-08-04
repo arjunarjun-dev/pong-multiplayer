@@ -45,21 +45,26 @@
   <audio id="leftSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
   <audio id="rightSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
   <audio id="grandEntranceSound" src="https://actions.google.com/sounds/v1/crowds/crowd_cheer.ogg" preload="auto"></audio>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const script = document.createElement('script');
+    script.src = 'game.js';
+    document.body.appendChild(script);
+  });
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="game.js"></script>
-  <script>
-    // Restart button logic
-    const restartBtn = document.getElementById('restartBtn');
-    restartBtn.addEventListener('click', () => {
-      socket.emit('restartGame');
-      restartBtn.style.display = 'none'; // hide button after restart
-    });
+  // Restart button logic
+  const restartBtn = document.getElementById('restartBtn');
+  restartBtn.addEventListener('click', () => {
+    socket.emit('restartGame');
+    restartBtn.style.display = 'none'; // hide button after restart
+  });
 
-    // Show restart button when server signals game restart available
-    socket.on('showRestart', () => {
-      restartBtn.style.display = 'inline-block';
-    });
-  </script>
+  // Show restart button when server signals game restart available
+  socket.on('showRestart', () => {
+    restartBtn.style.display = 'inline-block';
+  });
+</script>
+
 </body>
 </html>
