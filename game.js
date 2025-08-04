@@ -1,3 +1,5 @@
+// game.js
+
 const socket = io();
 
 const canvas = document.getElementById('game');
@@ -34,22 +36,11 @@ let balls = [createBall()];
 let leftScore = 0;
 let rightScore = 0;
 
-function resetGameState() {
-  gameOver = false;
-  leftScore = 0;
-  rightScore = 0;
-  leftPaddle.y = canvas.height / 2 - paddleHeight / 2;
-  rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
-  leftPaddle.dy = 0;
-  rightPaddle.dy = 0;
-  balls = [createBall()];
-}
-
-function createBall() {
+function createBall(x = canvas.width / 2, y = canvas.height / 2) {
   const angle = Math.random() * Math.PI * 2;
   return {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+    x: x,
+    y: y,
     width: grid,
     height: grid,
     dx: Math.cos(angle) * ballSpeed,
@@ -85,34 +76,28 @@ function fireConfetti(winner) {
     }));
   }
 
-  fire(0.25, {
-    spread: 26,
-    startVelocity: 55,
-  });
-  fire(0.2, {
-    spread: 60,
-  });
-  fire(0.35, {
-    spread: 100,
-    decay: 0.91,
-    scalar: 0.8
-  });
-  fire(0.1, {
-    spread: 120,
-    startVelocity: 25,
-    decay: 0.92,
-    scalar: 1.2
-  });
-  fire(0.1, {
-    spread: 120,
-    startVelocity: 45,
-  });
+  fire(0.25, { spread: 26, startVelocity: 55 });
+  fire(0.2, { spread: 60 });
+  fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+  fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+  fire(0.1, { spread: 120, startVelocity: 45 });
 
   alert(`${winner} wins the game! 🎉`);
+  document.getElementById('menu').style.display = 'flex';
+  document.getElementById('restartBtn').style.display = 'inline-block';
 }
 
 function startGameMode(mode) {
   document.getElementById('menu').style.display = 'none';
+  document.getElementById('restartBtn').style.display = 'none';
+  gameOver = false;
+  balls = [createBall()];
+  leftScore = 0;
+  rightScore = 0;
+
+  leftPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
+
   if (mode === 'online') {
     isOnline = true;
     gameId = new URLSearchParams(window.location.search).get('game') || Math.random().toString(36).substr(2, 6);
@@ -122,7 +107,7 @@ function startGameMode(mode) {
     status.innerText = 'Waiting for another player to join...';
     status.style.display = 'block';
 
-    let timeLeft = 300; // 5 minutes
+    let timeLeft = 300;
     joinTimeout = setInterval(() => {
       timeLeft--;
       status.innerText = `Waiting for another player to join... (${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')})`;
@@ -133,7 +118,8 @@ function startGameMode(mode) {
       }
     }, 1000);
   } else {
-    resetGameState(); 
+    isOnline = false;
+    playerSide = null;
     loop();
   }
 }
@@ -144,14 +130,11 @@ function loop() {
   requestAnimationFrame(loop);
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Move paddles only if offline
-  if (!isOnline) {
-    leftPaddle.y += leftPaddle.dy;
-    rightPaddle.y += rightPaddle.dy;
+  leftPaddle.y += leftPaddle.dy;
+  rightPaddle.y += rightPaddle.dy;
 
-    leftPaddle.y = Math.max(grid, Math.min(maxPaddleY, leftPaddle.y));
-    rightPaddle.y = Math.max(grid, Math.min(maxPaddleY, rightPaddle.y));
-  }
+  leftPaddle.y = Math.max(grid, Math.min(maxPaddleY, leftPaddle.y));
+  rightPaddle.y = Math.max(grid, Math.min(maxPaddleY, rightPaddle.y));
 
   context.fillStyle = 'blue';
   context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
@@ -185,13 +168,10 @@ function loop() {
         return;
       }
       ballHandled = true;
-      if (leftScore >= 200 && balls.length > 10) {
-        balls[i] = null;
-      } else {
-        ball.dx *= -1;
-        ball.x = leftPaddle.x + leftPaddle.width;
-        balls.push(createBall());
-      }
+      ball.dx *= -1;
+      ball.x = leftPaddle.x + leftPaddle.width;
+      balls[i] = null;
+      balls.push(createBall(ball.x, ball.y));
     }
 
     if (collides(ball, rightPaddle)) {
@@ -202,19 +182,23 @@ function loop() {
         return;
       }
       ballHandled = true;
-      if (rightScore >= 200 && balls.length > 10) {
-        balls[i] = null;
-      } else {
-        ball.dx *= -1;
-        ball.x = rightPaddle.x - ball.width;
-        balls.push(createBall());
-      }
+      ball.dx *= -1;
+      ball.x = rightPaddle.x - ball.width;
+      balls[i] = null;
+      balls.push(createBall(ball.x, ball.y));
     }
 
     if (!ballHandled) {
       context.fillStyle = 'white';
       context.fillRect(ball.x, ball.y, ball.width, ball.height);
     }
+  }
+
+  if (balls.length === 0) {
+    gameOver = true;
+    const winner = leftScore > rightScore ? 'Blue' : (rightScore > leftScore ? 'Yellow' : 'No one');
+    fireConfetti(winner);
+    return;
   }
 
   context.fillStyle = 'black';
@@ -235,18 +219,7 @@ socket.on('startOnlineGame', (side) => {
   const entranceAudio = new Audio('https://www.soundjay.com/human/sounds/cheering-01.mp3');
   entranceAudio.play();
   confetti();
-  resetGameState();
   loop();
-});
-
-// Receive paddle positions from server and update
-socket.on('updatePaddles', (positions) => {
-  if (positions.left !== undefined) {
-    leftPaddle.y = positions.left;
-  }
-  if (positions.right !== undefined) {
-    rightPaddle.y = positions.right;
-  }
 });
 
 document.addEventListener('keydown', (e) => {
@@ -275,7 +248,6 @@ document.addEventListener('keyup', (e) => {
   }
 });
 
-// Menu setup (unchanged)
 const menuDiv = document.createElement('div');
 menuDiv.id = 'menu';
 menuDiv.style.position = 'absolute';
@@ -293,10 +265,10 @@ menuDiv.innerHTML = `
   <div id="status" style="color:yellow; margin-bottom: 10px;"></div>
   <button onclick="startGameMode('local')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play on Same Machine</button>
   <button onclick="startGameMode('online')" style="font-size: 20px; padding: 10px 20px; margin: 10px;">Play with a Friend Online</button>
+  <button id="restartBtn" onclick="startGameMode(isOnline ? 'online' : 'local')" style="display:inline-block; font-size: 18px; padding: 8px 16px; margin-top: 20px;">Restart Game</button>
 `;
 document.body.appendChild(menuDiv);
 
-// Load confetti library
 const script = document.createElement('script');
 script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
 document.head.appendChild(script);
