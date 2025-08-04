@@ -15,6 +15,8 @@ let isOnline = false;
 let playerSide = null; // 'left' or 'right'
 let gameId = null;
 let joinTimeout = null;
+let countdown = 0;  // countdown seconds before game start
+
 
 const leftPaddle = {
   x: grid * 2,
@@ -94,6 +96,7 @@ function startGameMode(mode) {
   balls = [createBall()];
   leftScore = 0;
   rightScore = 0;
+  countdown = 3; // start countdown at 3 seconds
 
   leftPaddle.y = canvas.height / 2 - paddleHeight / 2;
   rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
@@ -122,6 +125,20 @@ function startGameMode(mode) {
     playerSide = null;
     loop();
   }
+
+  // Start countdown timer
+  if (countdown > 0) {
+    const countdownInterval = setInterval(() => {
+      countdown--;
+      if (countdown <= 0) {
+        clearInterval(countdownInterval);
+        // Start the game loop if not already running
+        if (!gameOver) {
+          loop();
+        }
+      }
+    }, 1000);
+  }
 }
 
 function loop() {
@@ -129,6 +146,18 @@ function loop() {
 
   requestAnimationFrame(loop);
   context.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (countdown > 0) {
+    // Draw countdown text centered on canvas
+    context.fillStyle = 'white';
+    context.font = '80px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(countdown, canvas.width / 2, canvas.height / 2);
+    return;  // skip rest of loop to freeze gameplay
+  }
+
+  // normal game updates below...
 
   leftPaddle.y += leftPaddle.dy;
   rightPaddle.y += rightPaddle.dy;
@@ -170,9 +199,7 @@ function loop() {
       ballHandled = true;
       ball.dx *= -1;
       ball.x = leftPaddle.x + leftPaddle.width;
-      // Keep current ball and add a new one at collision point
       balls.push(createBall(ball.x, ball.y));
-      // do NOT remove current ball
     }
 
     if (collides(ball, rightPaddle)) {
@@ -185,9 +212,7 @@ function loop() {
       ballHandled = true;
       ball.dx *= -1;
       ball.x = rightPaddle.x - ball.width;
-      // Keep current ball and add a new one at collision point
       balls.push(createBall(ball.x, ball.y));
-      // do NOT remove current ball
     }
 
     if (!ballHandled) {
