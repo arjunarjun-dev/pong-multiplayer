@@ -9,7 +9,7 @@ const paddleHeight = grid * 10;
 const maxPaddleY = canvas.height - grid - paddleHeight;
 
 let paddleSpeed = 12;
-let ballSpeed = 10;
+let ballSpeed = 5;
 let gameOver = false;
 let isOnline = false;
 let playerSide = null; // 'left' or 'right'
