@@ -1,5 +1,3 @@
-// game.js
-
 const socket = io();
 
 const canvas = document.getElementById('game');
@@ -37,12 +35,7 @@ let leftScore = 0;
 let rightScore = 0;
 
 function createBall() {
-  // Pick angle between 30°-150° or 210°-330°
-  const angles = [
-    Math.random() * (150 - 30) + 30,
-    Math.random() * (330 - 210) + 210
-  ];
-  const angle = (Math.random() < 0.5 ? angles[0] : angles[1]) * (Math.PI / 180);
+  const angle = Math.random() * Math.PI * 2;
   return {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -52,7 +45,6 @@ function createBall() {
     dy: Math.sin(angle) * ballSpeed
   };
 }
-
 
 function collides(obj1, obj2) {
   return obj1.x < obj2.x + obj2.width &&
@@ -135,21 +127,19 @@ function startGameMode(mode) {
 }
 
 function loop() {
-
-  console.log('Game loop running, balls:', balls.length);
-  balls.forEach((ball, i) => {
-    console.log(`Ball ${i}: x=${ball.x.toFixed(2)}, y=${ball.y.toFixed(2)}, dx=${ball.dx.toFixed(2)}, dy=${ball.dy.toFixed(2)}`);
-  });
-  
   if (gameOver) return;
+
   requestAnimationFrame(loop);
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  leftPaddle.y += leftPaddle.dy;
-  rightPaddle.y += rightPaddle.dy;
+  // Move paddles only if offline
+  if (!isOnline) {
+    leftPaddle.y += leftPaddle.dy;
+    rightPaddle.y += rightPaddle.dy;
 
-  leftPaddle.y = Math.max(grid, Math.min(maxPaddleY, leftPaddle.y));
-  rightPaddle.y = Math.max(grid, Math.min(maxPaddleY, rightPaddle.y));
+    leftPaddle.y = Math.max(grid, Math.min(maxPaddleY, leftPaddle.y));
+    rightPaddle.y = Math.max(grid, Math.min(maxPaddleY, rightPaddle.y));
+  }
 
   context.fillStyle = 'blue';
   context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
@@ -236,6 +226,16 @@ socket.on('startOnlineGame', (side) => {
   loop();
 });
 
+// Receive paddle positions from server and update
+socket.on('updatePaddles', (positions) => {
+  if (positions.left !== undefined) {
+    leftPaddle.y = positions.left;
+  }
+  if (positions.right !== undefined) {
+    rightPaddle.y = positions.right;
+  }
+});
+
 document.addEventListener('keydown', (e) => {
   if (isOnline) {
     if ((playerSide === 'right' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) ||
@@ -262,7 +262,7 @@ document.addEventListener('keyup', (e) => {
   }
 });
 
-// Add menu buttons
+// Menu setup (unchanged)
 const menuDiv = document.createElement('div');
 menuDiv.id = 'menu';
 menuDiv.style.position = 'absolute';
