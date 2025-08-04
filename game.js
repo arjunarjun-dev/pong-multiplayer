@@ -34,6 +34,17 @@ let balls = [createBall()];
 let leftScore = 0;
 let rightScore = 0;
 
+function resetGameState() {
+  gameOver = false;
+  leftScore = 0;
+  rightScore = 0;
+  leftPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  leftPaddle.dy = 0;
+  rightPaddle.dy = 0;
+  balls = [createBall()];
+}
+
 function createBall() {
   const angle = Math.random() * Math.PI * 2;
   return {
@@ -122,6 +133,7 @@ function startGameMode(mode) {
       }
     }, 1000);
   } else {
+    resetGameState(); 
     loop();
   }
 }
@@ -223,6 +235,7 @@ socket.on('startOnlineGame', (side) => {
   const entranceAudio = new Audio('https://www.soundjay.com/human/sounds/cheering-01.mp3');
   entranceAudio.play();
   confetti();
+  resetGameState();
   loop();
 });
 
