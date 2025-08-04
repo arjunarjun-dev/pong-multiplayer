@@ -239,6 +239,16 @@ function loop() {
   drawScore();
 }
 
+socket.on('playerCount', (count) => {
+  const status = document.getElementById('status');
+  if (count < 2) {
+    status.style.display = 'block';
+    status.innerText = `Waiting for another player to join... (${count}/2)`;
+  } else {
+    status.innerText = 'Both players joined! Starting soon...';
+  }
+});
+
 socket.on('startOnlineGame', (side) => {
   if (joinTimeout) clearInterval(joinTimeout);
   document.getElementById('status').style.display = 'none';
