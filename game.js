@@ -239,16 +239,34 @@ function loop() {
   drawScore();
 }
 
-
 socket.on('startOnlineGame', (side) => {
   if (joinTimeout) clearInterval(joinTimeout);
   document.getElementById('status').style.display = 'none';
   playerSide = side;
+
+  // Reset game state just like local start
+  gameOver = false;
+  balls = [createBall()];
+  leftScore = 0;
+  rightScore = 0;
+  leftPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  countdown = 3; // start countdown for online game
+
   const entranceAudio = new Audio('https://www.soundjay.com/human/sounds/cheering-01.mp3');
   entranceAudio.play();
   confetti();
-  loop();
+
+  // Start countdown timer for online game
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(countdownInterval);
+      if (!gameOver) loop();
+    }
+  }, 1000);
 });
+
 
 document.addEventListener('keydown', (e) => {
   if (isOnline) {
